@@ -55,9 +55,11 @@ export default function Home() {
         level: progress.currentLevel.toString(),
       })
       router.push(`/result?${params.toString()}`)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('분석 실패:', error)
-      const errorMessage = error.message || '분석 중 오류가 발생했습니다.'
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : '분석 중 오류가 발생했습니다.'
       setError(errorMessage)
     } finally {
       setIsAnalyzing(false)

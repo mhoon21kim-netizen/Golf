@@ -397,3 +397,140 @@ pytest tests/ -v
 # 모든 체크박스가 체크되면 Green 단계 완료
 ```
 
+---
+
+## TDD Refactoring 단계: 코드 품질 개선 목록
+
+TDD(Test-Driven Development)의 Refactoring 단계에서 코드 품질을 개선하기 위한 작업 목록입니다. 모든 테스트가 통과하는 상태를 유지하면서 코드를 개선합니다.
+
+### 분석 문서
+
+자세한 분석 결과는 `REFACTORING_ANALYSIS.md` 파일을 참조하세요.
+
+### 1. 정적 분석 개선
+
+#### TypeScript 타입 안정성
+- [ ] `any` 타입을 구체적인 타입으로 변경
+  - [ ] `backend/src/handlers/judgmentHandler.ts:57` - `error: any` → `error: unknown`
+  - [ ] `backend/src/utils/llmFeedback.ts:16` - `Record<string, any>` → `Metrics` 인터페이스
+  - [ ] `frontend/app/page.tsx:58` - `error: any` → `error: unknown`
+
+#### 매직 넘버 제거
+- [ ] 판정 기준값을 상수로 추출
+  - [ ] `backend/src/rules/judgmentRules.ts` - `JUDGMENT_CRITERIA` 상수 정의
+  - [ ] `backend/src/handlers/judgmentHandler.ts:28` - 타임아웃 상수
+  - [ ] `backend/src/index.ts:40` - 파일 크기 제한 상수
+
+#### 하드코딩된 문자열 제거
+- [ ] 피드백 메시지를 별도 파일로 분리
+  - [ ] `backend/src/utils/feedbackMessages.ts` 생성
+  - [ ] `backend/src/utils/llmFeedback.ts`에서 메시지 파일 사용
+
+#### 에러 처리 통일
+- [ ] 공통 에러 처리 미들웨어 생성
+  - [ ] `backend/src/utils/errors.ts` - 커스텀 에러 클래스
+  - [ ] `backend/src/middleware/errorHandler.ts` - 에러 처리 미들웨어
+
+### 2. 코드 스멜 개선
+
+#### 긴 함수 분리
+- [ ] `ai-engine/analyzer.py` 메서드 분리
+  - [ ] `_calculate_metrics()` 메서드를 더 작은 단위로 분리
+  - [ ] `_estimate_club_path()` 로직 단순화
+
+#### 중복 코드 제거
+- [ ] 판정 로직 전략 패턴 적용
+  - [ ] `LevelJudgmentStrategy` 인터페이스 생성
+  - [ ] 각 레벨별 전략 클래스 생성
+  - [ ] `applyJudgmentRules()` 함수 리팩토링
+
+#### 복잡한 조건문 개선
+- [ ] if-else 체인을 전략 패턴으로 변경
+  - [ ] 팩토리 패턴으로 전략 선택
+  - [ ] 조건문 제거
+
+#### 책임 분리
+- [ ] `backend/src/index.ts` 리팩토링
+  - [ ] 라우트 핸들러를 별도 파일로 분리 (`routes/judgmentRoutes.ts`)
+  - [ ] 서버 설정을 별도 파일로 분리 (`config/server.ts`)
+  - [ ] 미들웨어 설정을 별도 파일로 분리 (`config/middleware.ts`)
+
+### 3. SOLID 원칙 개선
+
+#### 단일 책임 원칙 (SRP)
+- [ ] Backend 구조 개선
+  - [ ] 서버 설정 분리
+  - [ ] 라우트 분리
+  - [ ] 컨트롤러 분리
+- [ ] Frontend 컴포넌트 분리
+  - [ ] `page.tsx`를 더 작은 컴포넌트로 분리
+  - [ ] 커스텀 훅으로 비즈니스 로직 분리
+
+#### 개방-폐쇄 원칙 (OCP)
+- [ ] 판정 로직 전략 패턴 적용
+  - [ ] 새로운 레벨 추가 시 기존 코드 수정 불필요하도록 개선
+
+#### 의존성 역전 원칙 (DIP)
+- [ ] HTTP 클라이언트 인터페이스화
+  - [ ] `HttpClient` 인터페이스 생성
+  - [ ] `judgmentHandler`에 의존성 주입
+
+### 4. 리팩토링 실행 원칙
+
+1. **테스트 우선**: 모든 리팩토링 전에 테스트가 통과하는지 확인
+2. **작은 단계**: 한 번에 하나의 리팩토링만 수행
+3. **테스트 유지**: 리팩토링 후 즉시 테스트 실행하여 회귀 방지
+4. **기능 보존**: 리팩토링 후 기능이 동일하게 동작하는지 확인
+
+### 5. 리팩토링 실행 순서
+
+1. **타입 안정성 개선** (낮은 위험)
+2. **매직 넘버 제거** (낮은 위험)
+3. **에러 처리 통일** (중간 위험)
+4. **책임 분리** (중간 위험)
+5. **전략 패턴 적용** (높은 위험, 신중히 진행)
+
+### 6. 리팩토링 검증
+
+각 리팩토링 후 다음을 확인합니다:
+
+```bash
+# Backend 테스트
+cd backend
+npm test
+
+# Frontend 테스트
+cd frontend
+npm test
+
+# AI Engine 테스트
+cd ai-engine
+pytest tests/ -v
+
+# 타입 체크
+cd backend
+npm run build
+
+cd frontend
+npm run build
+```
+
+### 7. 정적 분석 도구 실행
+
+```bash
+# Backend ESLint
+cd backend
+npm run lint
+
+# Frontend ESLint
+cd frontend
+npm run lint
+
+# Python 정적 분석 (선택사항)
+cd ai-engine
+pylint analyzer.py app.py
+flake8 analyzer.py app.py
+```
+
+---
+

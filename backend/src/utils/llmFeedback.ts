@@ -9,11 +9,13 @@ const openai = new OpenAI({
  * LLM을 사용한 피드백 생성
  * 판정은 규칙 엔진에서 이미 완료되었으므로, LLM은 피드백 문구만 생성
  */
+import { Metrics } from '../rules/judgmentRules'
+
 export async function generateFeedbackWithLLM(
   level: Level,
   result: JudgmentResult,
   failureType: FailureType,
-  metrics: Record<string, any>
+  metrics: Metrics
 ): Promise<Feedback> {
   // API 키가 없으면 폴백 템플릿 사용
   if (!process.env.OPENAI_API_KEY) {
@@ -56,7 +58,7 @@ function buildPrompt(
   level: Level,
   result: JudgmentResult,
   failureType: FailureType,
-  metrics: Record<string, any>
+  metrics: Metrics
 ): string {
   const levelNames: Record<Level, string> = {
     [Level.Lv1]: 'Level 1 (그립 & 어드레스 안정)',
@@ -94,7 +96,7 @@ ${metricInfo}
 위 정보를 바탕으로 피드백을 제공하세요.`
 }
 
-function formatMetrics(level: Level, metrics: Record<string, any>): string {
+function formatMetrics(level: Level, metrics: Metrics): string {
   if (level === Level.Lv1) {
     return `- 척추 각도 변동: ${metrics.spine_angle_variance?.toFixed(2) ?? 'N/A'}° (기준: ≤4°)
 - 그립 강도: ${metrics.grip_strength?.toFixed(2) ?? 'N/A'} (기준: ≥0.75)`
@@ -118,7 +120,7 @@ function parseFeedback(
   level: Level,
   result: JudgmentResult,
   failureType: FailureType,
-  metrics: Record<string, any>
+  metrics: Metrics
 ): Feedback {
   // LLM 응답 파싱
   const problemMatch = content.match(/문제[：:]\s*(.+?)(?:\n|이유|$)/i)
@@ -145,7 +147,7 @@ function getFallbackFeedback(
   level: Level,
   result: JudgmentResult,
   failureType: FailureType,
-  metrics: Record<string, any>
+  metrics: Metrics
 ): Feedback {
   // LLM 실패 시 하드코딩된 폴백 피드백
   if (result === JudgmentResult.PASS) {

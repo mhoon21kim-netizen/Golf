@@ -81,3 +81,5 @@ OPENAI_API_KEY=your-key-here  # 선택사항
 NEXT_PUBLIC_API_URL=http://localhost:3001
 ```
 
+
+
