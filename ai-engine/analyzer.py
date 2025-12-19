@@ -103,7 +103,11 @@ class GolfSwingAnalyzer:
         # 유효한 프레임만 필터링
         valid_frames = [f for f in frames_data if f is not None]
         if len(valid_frames) < 10:
-            raise ValueError('분석할 수 있는 프레임이 부족합니다.')
+            raise ValueError(
+                f'분석할 수 있는 프레임이 부족합니다. '
+                f'감지된 프레임: {len(valid_frames)}개 (최소 10개 필요). '
+                f'영상에 사람의 전체 몸이 명확하게 보이는지 확인하세요.'
+            )
 
         if level == 1:
             # Lv1: 그립 & 어드레스 안정

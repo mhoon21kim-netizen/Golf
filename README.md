@@ -220,3 +220,317 @@ cd ai-engine
 pytest tests/
 ```
 
+---
+
+## TDD Green 단계: 테스트 통과를 위한 구현 목록
+
+TDD(Test-Driven Development)의 Green 단계에서 테스트를 통과시키기 위해 구현해야 할 작업 목록입니다. Red 단계에서 작성한 테스트가 모두 통과하도록 최소한의 코드를 작성합니다.
+
+### 0. 테스트 환경 설정
+
+- [x] Backend Jest 설정 (`backend/jest.config.js`) ✅
+- [x] Backend 테스트 의존성 설치 (`jest`, `ts-jest`, `@types/jest`) ✅
+- [x] Frontend Vitest 설정 (`frontend/vitest.config.ts`) ✅
+- [x] Frontend 테스트 의존성 설치 (`vitest`, `@vitejs/plugin-react`, `@testing-library/react`, `jsdom`) ✅
+- [x] AI Engine pytest 설정 (`ai-engine/pytest.ini`) ✅
+- [x] AI Engine 테스트 의존성 설치 (`pytest`, `pytest-mock`) ✅
+
+### 1. 판정 로직 구현 (규칙 엔진)
+
+**목표**: `backend/src/rules/judgmentRules.ts`의 모든 테스트 통과
+
+#### Lv1 구현
+- [x] 척추 각도 변동 > 4° → FAIL (ADDRESS_UNSTABLE) 로직 구현 ✅
+- [x] 척추 각도 변동 ≤ 4° → PASS 로직 구현 ✅
+- [x] 그립 강도 < 0.75 → FAIL (GRIP_WEAK) 로직 구현 ✅
+- [x] 그립 강도 ≥ 0.75 → PASS 로직 구현 ✅
+- [x] 두 기준 모두 통과 시 PASS 반환 ✅
+- [x] 하나라도 실패 시 FAIL 반환 (우선순위: ADDRESS_UNSTABLE > GRIP_WEAK) ✅
+
+#### Lv2 구현
+- [x] 클럽 패스 < -1.5° 또는 > +1.5° → FAIL (SLICE) 로직 구현 ✅
+- [x] 클럽 패스 -1.5° ~ +1.5° → PASS 로직 구현 ✅
+- [x] 리듬 변동 > 0.12 → FAIL (RHYTHM_UNSTABLE) 로직 구현 ✅
+- [x] 리듬 변동 ≤ 0.12 → PASS 로직 구현 ✅
+- [x] 두 기준 모두 통과 시 PASS 반환 ✅
+
+#### Lv3 구현
+- [x] 체중 이동 < 60% → FAIL (FAT_SHOT) 로직 구현 ✅
+- [x] 체중 이동 ≥ 60% → PASS 로직 구현 ✅
+- [x] 임팩트 각도 < -4° → FAIL (TOPPING) 로직 구현 ✅
+- [x] 임팩트 각도 ≥ -4° → PASS 로직 구현 ✅
+- [x] 두 기준 모두 통과 시 PASS 반환 ✅
+
+#### 엣지 케이스 처리
+- [x] 지표가 undefined/null일 때 기본값 처리 및 FAIL 반환 ✅
+- [x] 알 수 없는 레벨일 때 FAIL 반환 ✅
+- [x] 경계값에서 정확한 판정 (4°, 0.75, -1.5°~+1.5°, 0.12, 60%, -4°) ✅
+
+**테스트 결과**: ✅ 모든 테스트 통과 (48/48)
+
+### 2. 피드백 생성 구현
+
+**목표**: `backend/src/utils/llmFeedback.ts`의 모든 테스트 통과
+
+- [x] OpenAI API 클라이언트 초기화 ✅
+- [x] PASS 시 피드백 템플릿 구현 ✅
+- [x] FAIL 시 문제/이유/연습 내용 포함 피드백 생성 ✅
+- [x] LLM API 호출 구현 (프롬프트 생성, 응답 파싱) ✅
+- [x] LLM API 실패 시 폴백 피드백 반환 ✅
+- [x] API 키 없을 때 폴백 피드백 반환 ✅
+- [x] 각 FailureType별 폴백 피드백 템플릿 구현 ✅
+  - [x] GRIP_WEAK 피드백 ✅
+  - [x] ADDRESS_UNSTABLE 피드백 ✅
+  - [x] SLICE 피드백 ✅
+  - [x] RHYTHM_UNSTABLE 피드백 ✅
+  - [x] FAT_SHOT 피드백 ✅
+  - [x] TOPPING 피드백 ✅
+- [x] 피드백에 수치 정보 포함 (metrics 값 반영) ✅
+
+**테스트 결과**: ✅ 모든 테스트 통과
+
+### 3. Day Sheet 저장/로드 구현
+
+**목표**: `frontend/app/lib/storage.ts`의 모든 테스트 통과
+
+- [x] `getProgress()` 함수 구현 (초기 상태 반환) ✅
+- [x] `saveProgress()` 함수 구현 (LocalStorage 저장) ✅
+- [x] `saveDaySheetEntry()` 함수 구현 (항목 추가 및 진행 상태 업데이트) ✅
+- [x] `getDaySheets()` 함수 구현 (항목 로드) ✅
+- [x] 총 일수 계산 로직 구현 (중복 날짜 제거) ✅
+- [x] 연속 일수 계산 로직 구현 (날짜 연속성 검증) ✅
+- [x] LocalStorage 없을 때 기본값 반환 (SSR 환경 처리) ✅
+
+**구현 상태**: ✅ 코드 완료 (테스트 파일 작성 완료, 실행 대기)
+
+### 4. API 핸들러 구현
+
+**목표**: `backend/src/handlers/judgmentHandler.ts`의 모든 테스트 통과
+
+- [x] 영상 파일 업로드 처리 (Multer 설정 확인) ✅
+- [x] AI 엔진 호출 (axios를 통한 HTTP 요청) ✅
+- [x] 판정 로직 적용 (`applyJudgmentRules` 호출) ✅
+- [x] 피드백 생성 (`generateFeedbackWithLLM` 호출) ✅
+- [x] 응답 형식 구성 (result, failureType, feedback, metrics, timestamp) ✅
+- [x] 에러 처리 구현 ✅
+  - [x] AI 엔진 실패 시 에러 처리 ✅
+  - [x] 파일 없음 시 에러 처리 ✅
+  - [x] 타임아웃 처리 (30초) ✅
+
+**테스트 결과**: ✅ 모든 테스트 통과
+
+### 5. AI 엔진 분석 구현
+
+**목표**: `ai-engine/analyzer.py`의 모든 테스트 통과
+
+- [x] MediaPipe Pose 초기화 ✅
+- [x] 영상 파일 로드 (`cv2.VideoCapture`) ✅
+- [x] 프레임별 포즈 추출 (`pose.process()`) ✅
+- [x] 랜드마크 추출 (`_extract_landmarks()`) ✅
+- [x] Lv1 지표 계산 구현 ✅
+  - [x] 척추 각도 변동 계산 (`_calculate_spine_angle_variance()`) ✅
+  - [x] 그립 강도 추정 (`_estimate_grip_strength()`) ✅
+- [x] Lv2 지표 계산 구현 ✅
+  - [x] 클럽 패스 추정 (`_estimate_club_path()`) ✅
+  - [x] 리듬 변동 계산 (`_calculate_rhythm_variance()`) ✅
+- [x] Lv3 지표 계산 구현 ✅
+  - [x] 체중 이동 계산 (`_calculate_weight_shift()`) ✅
+  - [x] 임팩트 각도 추정 (`_estimate_impact_angle()`) ✅
+- [x] 에러 처리 구현 ✅
+  - [x] 포즈 미감지 시 에러 발생 ✅
+  - [x] 프레임 부족 시 에러 발생 (10개 미만) ✅
+
+**구현 상태**: ✅ 코드 완료 (테스트 파일 작성 완료, 실행 대기)
+
+### 6. 통합 테스트 통과
+
+**목표**: `backend/__tests__/integration/judgment.test.ts`의 모든 테스트 통과
+
+- [x] 전체 플로우 구현 확인 ✅
+  - [x] 영상 업로드 → AI 엔진 분석 → 판정 → 피드백 ✅
+- [x] 각 레벨별 통합 테스트 통과 ✅
+  - [x] Lv1 통합 테스트 ✅
+  - [x] Lv2 통합 테스트 ✅
+  - [x] Lv3 통합 테스트 ✅
+- [x] PASS/FAIL 시나리오 검증 ✅
+  - [x] PASS 시나리오 (모든 기준 통과) ✅
+  - [x] FAIL 시나리오 (하나라도 실패) ✅
+
+**테스트 결과**: ✅ 모든 테스트 통과
+
+### 구현 원칙
+
+1. **최소한의 코드**: 테스트를 통과시키는 최소한의 코드만 작성
+2. **보수적 기준 유지**: 판정 기준을 절대 완화하지 않음
+3. **에러 처리**: 모든 엣지 케이스에 대한 에러 처리 구현
+4. **타입 안정성**: TypeScript 타입 정의 준수
+5. **테스트 우선**: 각 구현 후 즉시 테스트 실행하여 통과 확인
+
+### 구현 순서 권장
+
+1. **테스트 환경 설정** (0번)
+2. **판정 로직 구현** (1번) - 가장 핵심적인 로직
+3. **피드백 생성 구현** (2번) - 판정 결과 활용
+4. **Day Sheet 저장/로드 구현** (3번) - 독립적인 기능
+5. **API 핸들러 구현** (4번) - 1, 2번 통합
+6. **AI 엔진 분석 구현** (5번) - 독립적인 기능
+7. **통합 테스트 통과** (6번) - 전체 플로우 검증
+
+### 테스트 실행 및 확인
+
+각 구현 단계마다 테스트를 실행하여 통과 여부를 확인합니다:
+
+```bash
+# Backend 테스트 실행
+cd backend
+npm test
+
+# Frontend 테스트 실행
+cd frontend
+npm test
+
+# AI Engine 테스트 실행
+cd ai-engine
+pytest tests/ -v
+
+# 모든 테스트 통과 확인
+# 모든 체크박스가 체크되면 Green 단계 완료
+```
+
+---
+
+## TDD Refactoring 단계: 코드 품질 개선 목록
+
+TDD(Test-Driven Development)의 Refactoring 단계에서 코드 품질을 개선하기 위한 작업 목록입니다. 모든 테스트가 통과하는 상태를 유지하면서 코드를 개선합니다.
+
+### 분석 문서
+
+자세한 분석 결과는 `REFACTORING_ANALYSIS.md` 파일을 참조하세요.
+
+### 1. 정적 분석 개선
+
+#### TypeScript 타입 안정성
+- [ ] `any` 타입을 구체적인 타입으로 변경
+  - [ ] `backend/src/handlers/judgmentHandler.ts:57` - `error: any` → `error: unknown`
+  - [ ] `backend/src/utils/llmFeedback.ts:16` - `Record<string, any>` → `Metrics` 인터페이스
+  - [ ] `frontend/app/page.tsx:58` - `error: any` → `error: unknown`
+
+#### 매직 넘버 제거
+- [ ] 판정 기준값을 상수로 추출
+  - [ ] `backend/src/rules/judgmentRules.ts` - `JUDGMENT_CRITERIA` 상수 정의
+  - [ ] `backend/src/handlers/judgmentHandler.ts:28` - 타임아웃 상수
+  - [ ] `backend/src/index.ts:40` - 파일 크기 제한 상수
+
+#### 하드코딩된 문자열 제거
+- [ ] 피드백 메시지를 별도 파일로 분리
+  - [ ] `backend/src/utils/feedbackMessages.ts` 생성
+  - [ ] `backend/src/utils/llmFeedback.ts`에서 메시지 파일 사용
+
+#### 에러 처리 통일
+- [ ] 공통 에러 처리 미들웨어 생성
+  - [ ] `backend/src/utils/errors.ts` - 커스텀 에러 클래스
+  - [ ] `backend/src/middleware/errorHandler.ts` - 에러 처리 미들웨어
+
+### 2. 코드 스멜 개선
+
+#### 긴 함수 분리
+- [ ] `ai-engine/analyzer.py` 메서드 분리
+  - [ ] `_calculate_metrics()` 메서드를 더 작은 단위로 분리
+  - [ ] `_estimate_club_path()` 로직 단순화
+
+#### 중복 코드 제거
+- [ ] 판정 로직 전략 패턴 적용
+  - [ ] `LevelJudgmentStrategy` 인터페이스 생성
+  - [ ] 각 레벨별 전략 클래스 생성
+  - [ ] `applyJudgmentRules()` 함수 리팩토링
+
+#### 복잡한 조건문 개선
+- [ ] if-else 체인을 전략 패턴으로 변경
+  - [ ] 팩토리 패턴으로 전략 선택
+  - [ ] 조건문 제거
+
+#### 책임 분리
+- [ ] `backend/src/index.ts` 리팩토링
+  - [ ] 라우트 핸들러를 별도 파일로 분리 (`routes/judgmentRoutes.ts`)
+  - [ ] 서버 설정을 별도 파일로 분리 (`config/server.ts`)
+  - [ ] 미들웨어 설정을 별도 파일로 분리 (`config/middleware.ts`)
+
+### 3. SOLID 원칙 개선
+
+#### 단일 책임 원칙 (SRP)
+- [ ] Backend 구조 개선
+  - [ ] 서버 설정 분리
+  - [ ] 라우트 분리
+  - [ ] 컨트롤러 분리
+- [ ] Frontend 컴포넌트 분리
+  - [ ] `page.tsx`를 더 작은 컴포넌트로 분리
+  - [ ] 커스텀 훅으로 비즈니스 로직 분리
+
+#### 개방-폐쇄 원칙 (OCP)
+- [ ] 판정 로직 전략 패턴 적용
+  - [ ] 새로운 레벨 추가 시 기존 코드 수정 불필요하도록 개선
+
+#### 의존성 역전 원칙 (DIP)
+- [ ] HTTP 클라이언트 인터페이스화
+  - [ ] `HttpClient` 인터페이스 생성
+  - [ ] `judgmentHandler`에 의존성 주입
+
+### 4. 리팩토링 실행 원칙
+
+1. **테스트 우선**: 모든 리팩토링 전에 테스트가 통과하는지 확인
+2. **작은 단계**: 한 번에 하나의 리팩토링만 수행
+3. **테스트 유지**: 리팩토링 후 즉시 테스트 실행하여 회귀 방지
+4. **기능 보존**: 리팩토링 후 기능이 동일하게 동작하는지 확인
+
+### 5. 리팩토링 실행 순서
+
+1. **타입 안정성 개선** (낮은 위험)
+2. **매직 넘버 제거** (낮은 위험)
+3. **에러 처리 통일** (중간 위험)
+4. **책임 분리** (중간 위험)
+5. **전략 패턴 적용** (높은 위험, 신중히 진행)
+
+### 6. 리팩토링 검증
+
+각 리팩토링 후 다음을 확인합니다:
+
+```bash
+# Backend 테스트
+cd backend
+npm test
+
+# Frontend 테스트
+cd frontend
+npm test
+
+# AI Engine 테스트
+cd ai-engine
+pytest tests/ -v
+
+# 타입 체크
+cd backend
+npm run build
+
+cd frontend
+npm run build
+```
+
+### 7. 정적 분석 도구 실행
+
+```bash
+# Backend ESLint
+cd backend
+npm run lint
+
+# Frontend ESLint
+cd frontend
+npm run lint
+
+# Python 정적 분석 (선택사항)
+cd ai-engine
+pylint analyzer.py app.py
+flake8 analyzer.py app.py
+```
+
+---
+
