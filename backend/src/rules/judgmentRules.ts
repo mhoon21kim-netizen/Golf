@@ -4,6 +4,10 @@
  */
 
 import { Level, JudgmentResult, FailureType } from '../../../shared/types'
+import { LevelJudgmentStrategy } from './strategies/LevelJudgmentStrategy'
+import { Lv1JudgmentStrategy } from './strategies/Lv1JudgmentStrategy'
+import { Lv2JudgmentStrategy } from './strategies/Lv2JudgmentStrategy'
+import { Lv3JudgmentStrategy } from './strategies/Lv3JudgmentStrategy'
 
 export interface JudgmentOutput {
   result: JudgmentResult
@@ -17,11 +21,21 @@ export interface Metrics {
   rhythm_variance?: number
   weight_shift?: number
   impact_angle?: number
-  [key: string]: any
+  [key: string]: number | undefined
+}
+
+/**
+ * 레벨별 판정 전략 맵
+ */
+const strategies: Record<Level, LevelJudgmentStrategy> = {
+  [Level.Lv1]: new Lv1JudgmentStrategy(),
+  [Level.Lv2]: new Lv2JudgmentStrategy(),
+  [Level.Lv3]: new Lv3JudgmentStrategy(),
 }
 
 /**
  * 규칙 엔진 기반 판정
+ * 전략 패턴을 사용하여 레벨별 판정 로직을 분리
  * @param level 현재 레벨
  * @param metrics 측정 지표
  * @returns 판정 결과 및 실패 타입
@@ -30,91 +44,16 @@ export function applyJudgmentRules(
   level: Level,
   metrics: Metrics
 ): JudgmentOutput {
-  // Lv1: 그립 & 어드레스 안정 (보수적 기준)
-  if (level === Level.Lv1) {
-    // 기준 1: 척추 각도 변동 ≤ 4°
-    const spineAngleVariance = metrics.spine_angle_variance ?? 999
-    if (spineAngleVariance > 4) {
-      return {
-        result: JudgmentResult.FAIL,
-        failureType: FailureType.ADDRESS_UNSTABLE,
-      }
-    }
-    
-    // 기준 2: 그립 강도 ≥ 0.75
-    const gripStrength = metrics.grip_strength ?? 0
-    if (gripStrength < 0.75) {
-      return {
-        result: JudgmentResult.FAIL,
-        failureType: FailureType.GRIP_WEAK,
-      }
-    }
-    
-    // 모든 기준 통과 시에만 PASS
+  const strategy = strategies[level]
+  
+  if (!strategy) {
+    // 알 수 없는 레벨: FAIL (보수적 접근)
     return {
-      result: JudgmentResult.PASS,
+      result: JudgmentResult.FAIL,
       failureType: FailureType.NONE,
     }
   }
 
-  // Lv2: 스윙 궤도 & 리듬 (보수적 기준)
-  if (level === Level.Lv2) {
-    // 기준 1: 클럽 패스 -1.5° ~ +1.5°
-    const clubPath = metrics.club_path ?? 999
-    if (clubPath < -1.5 || clubPath > 1.5) {
-      return {
-        result: JudgmentResult.FAIL,
-        failureType: FailureType.SLICE,
-      }
-    }
-    
-    // 기준 2: 리듬 변동 ≤ 0.12
-    const rhythmVariance = metrics.rhythm_variance ?? 1.0
-    if (rhythmVariance > 0.12) {
-      return {
-        result: JudgmentResult.FAIL,
-        failureType: FailureType.RHYTHM_UNSTABLE,
-      }
-    }
-    
-    // 모든 기준 통과 시에만 PASS
-    return {
-      result: JudgmentResult.PASS,
-      failureType: FailureType.NONE,
-    }
-  }
-
-  // Lv3: 아이언 임팩트 (보수적 기준)
-  if (level === Level.Lv3) {
-    // 기준 1: 체중 이동 ≥ 60%
-    const weightShift = metrics.weight_shift ?? 0
-    if (weightShift < 60) {
-      return {
-        result: JudgmentResult.FAIL,
-        failureType: FailureType.FAT_SHOT,
-      }
-    }
-    
-    // 기준 2: 임팩트 각도 ≥ -4°
-    const impactAngle = metrics.impact_angle ?? -10
-    if (impactAngle < -4) {
-      return {
-        result: JudgmentResult.FAIL,
-        failureType: FailureType.TOPPING,
-      }
-    }
-    
-    // 모든 기준 통과 시에만 PASS
-    return {
-      result: JudgmentResult.PASS,
-      failureType: FailureType.NONE,
-    }
-  }
-
-  // 알 수 없는 레벨 또는 기본값: FAIL (보수적 접근)
-  return {
-    result: JudgmentResult.FAIL,
-    failureType: FailureType.NONE,
-  }
+  return strategy.evaluate(metrics)
 }
 

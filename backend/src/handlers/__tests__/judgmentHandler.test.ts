@@ -5,12 +5,12 @@
 
 import { Level } from '../../../../shared/types'
 import { judgmentHandler } from '../judgmentHandler'
-import axios from 'axios'
+import { HttpClient } from '../../interfaces/HttpClient'
+import { AIEngineError } from '../../utils/errors'
 import fs from 'fs'
 import FormData from 'form-data'
 
 // 모킹
-jest.mock('axios')
 jest.mock('fs')
 jest.mock('form-data', () => {
   return jest.fn().mockImplementation(() => ({
@@ -19,13 +19,17 @@ jest.mock('form-data', () => {
   }))
 })
 
-const mockedAxios = axios as jest.Mocked<typeof axios>
-
 describe('judgmentHandler', () => {
   const mockVideoPath = '/tmp/test-video.mp4'
+  let mockHttpClient: jest.Mocked<HttpClient>
 
   beforeEach(() => {
     jest.clearAllMocks()
+    
+    // HttpClient 모킹
+    mockHttpClient = {
+      post: jest.fn(),
+    } as jest.Mocked<HttpClient>
   })
 
   describe('영상 파일 업로드 처리', () => {
@@ -37,18 +41,19 @@ describe('judgmentHandler', () => {
       })
 
       // AI 엔진 응답 모킹
-      mockedAxios.post.mockResolvedValue({
+      mockHttpClient.post.mockResolvedValue({
         data: {
           metrics: {
             spine_angle_variance: 3,
             grip_strength: 0.8,
           },
         },
+        status: 200,
       })
 
-      await judgmentHandler(Level.Lv1, mockVideoPath)
+      await judgmentHandler(Level.Lv1, mockVideoPath, mockHttpClient)
 
-      expect(mockedAxios.post).toHaveBeenCalled()
+      expect(mockHttpClient.post).toHaveBeenCalled()
       expect(FormData).toHaveBeenCalled()
     })
   })
@@ -60,18 +65,19 @@ describe('judgmentHandler', () => {
         pipe: jest.fn(),
       })
 
-      mockedAxios.post.mockResolvedValue({
+      mockHttpClient.post.mockResolvedValue({
         data: {
           metrics: {
             spine_angle_variance: 3,
             grip_strength: 0.8,
           },
         },
+        status: 200,
       })
 
-      await judgmentHandler(Level.Lv1, mockVideoPath)
+      await judgmentHandler(Level.Lv1, mockVideoPath, mockHttpClient)
 
-      expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect(mockHttpClient.post).toHaveBeenCalledWith(
         expect.stringContaining('/analyze'),
         expect.any(Object),
         expect.any(Object)
@@ -86,16 +92,17 @@ describe('judgmentHandler', () => {
         pipe: jest.fn(),
       })
 
-      mockedAxios.post.mockResolvedValue({
+      mockHttpClient.post.mockResolvedValue({
         data: {
           metrics: {
             spine_angle_variance: 3,
             grip_strength: 0.8,
           },
         },
+        status: 200,
       })
 
-      const result = await judgmentHandler(Level.Lv1, mockVideoPath)
+      const result = await judgmentHandler(Level.Lv1, mockVideoPath, mockHttpClient)
 
       expect(result).toHaveProperty('result')
       expect(result).toHaveProperty('failureType')
@@ -111,16 +118,17 @@ describe('judgmentHandler', () => {
         pipe: jest.fn(),
       })
 
-      mockedAxios.post.mockResolvedValue({
+      mockHttpClient.post.mockResolvedValue({
         data: {
           metrics: {
             spine_angle_variance: 3,
             grip_strength: 0.8,
           },
         },
+        status: 200,
       })
 
-      const result = await judgmentHandler(Level.Lv1, mockVideoPath)
+      const result = await judgmentHandler(Level.Lv1, mockVideoPath, mockHttpClient)
 
       expect(result.feedback).toHaveProperty('problem')
       expect(result.feedback).toHaveProperty('reason')
@@ -135,10 +143,34 @@ describe('judgmentHandler', () => {
         pipe: jest.fn(),
       })
 
-      mockedAxios.post.mockRejectedValue(new Error('AI 엔진 연결 실패'))
+      mockHttpClient.post.mockRejectedValue(new Error('AI 엔진 연결 실패'))
 
-      await expect(judgmentHandler(Level.Lv1, mockVideoPath)).rejects.toThrow(
-        'AI 분석 중 오류가 발생했습니다'
+      // AIEngineError가 throw되는지 확인
+      await expect(judgmentHandler(Level.Lv1, mockVideoPath, mockHttpClient)).rejects.toThrow(
+        AIEngineError
+      )
+      
+      // 에러 메시지 확인
+      await expect(judgmentHandler(Level.Lv1, mockVideoPath, mockHttpClient)).rejects.toThrow(
+        'AI 엔진 연결 실패'
+      )
+    })
+
+    it('AI 엔진 에러 응답 처리', async () => {
+      ;(fs.existsSync as jest.Mock).mockReturnValue(true)
+      ;(fs.createReadStream as jest.Mock).mockReturnValue({
+        pipe: jest.fn(),
+      })
+
+      mockHttpClient.post.mockResolvedValue({
+        data: {
+          error: '분석할 수 있는 프레임이 부족합니다.',
+        },
+        status: 400,
+      })
+
+      await expect(judgmentHandler(Level.Lv1, mockVideoPath, mockHttpClient)).rejects.toThrow(
+        '분석할 수 있는 프레임이 부족합니다.'
       )
     })
 
@@ -148,7 +180,7 @@ describe('judgmentHandler', () => {
         throw new Error('파일을 찾을 수 없습니다')
       })
 
-      await expect(judgmentHandler(Level.Lv1, mockVideoPath)).rejects.toThrow()
+      await expect(judgmentHandler(Level.Lv1, mockVideoPath, mockHttpClient)).rejects.toThrow()
     })
   })
 
@@ -159,16 +191,17 @@ describe('judgmentHandler', () => {
         pipe: jest.fn(),
       })
 
-      mockedAxios.post.mockResolvedValue({
+      mockHttpClient.post.mockResolvedValue({
         data: {
           metrics: {
             spine_angle_variance: 3,
             grip_strength: 0.8,
           },
         },
+        status: 200,
       })
 
-      const result = await judgmentHandler(Level.Lv1, mockVideoPath)
+      const result = await judgmentHandler(Level.Lv1, mockVideoPath, mockHttpClient)
 
       expect(result).toHaveProperty('result')
       expect(result).toHaveProperty('failureType')

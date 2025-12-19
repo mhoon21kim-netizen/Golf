@@ -35,13 +35,31 @@ export function saveDaySheetEntry(entry: DaySheetEntry): void {
   if (typeof window === 'undefined') return
 
   const existing = getDaySheets()
-  const updated = [...existing, entry]
+  
+  // 같은 날짜의 항목이 있는지 확인
+  const sameDateIndex = existing.findIndex(
+    (e) => e.date === entry.date && e.level === entry.level
+  )
+
+  let updated: DaySheetEntry[]
+  
+  if (sameDateIndex >= 0) {
+    // 같은 날짜의 항목이 있으면 시도 횟수 증가
+    updated = [...existing]
+    updated[sameDateIndex] = {
+      ...updated[sameDateIndex],
+      attemptCount: updated[sameDateIndex].attemptCount + 1,
+      // 최신 결과로 업데이트
+      result: entry.result,
+      failureType: entry.failureType,
+    }
+  } else {
+    // 새로운 항목 추가
+    updated = [...existing, entry]
+  }
 
   // 진행 상태 업데이트
   const progress = getProgress()
-  const today = new Date().toISOString().split('T')[0]
-  const todayEntries = updated.filter((e) => e.date === today)
-
   progress.totalDays = new Set(updated.map((e) => e.date)).size
   progress.consecutiveDays = calculateConsecutiveDays(updated)
   progress.daySheets = updated

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
-import { Level, JudgmentResult, FailureType } from '../../../../shared/types'
+import { Level, JudgmentResult, FailureType } from '../../../../../shared/types'
 import {
   getProgress,
   saveProgress,
