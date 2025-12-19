@@ -29,6 +29,11 @@ export async function judgmentHandler(
       }
     )
 
+    // AI 엔진 오류 확인
+    if (response.data.error) {
+      throw new Error(response.data.error)
+    }
+
     const aiResult = response.data
 
     // 규칙 엔진 기반 판정
@@ -51,6 +56,17 @@ export async function judgmentHandler(
     }
   } catch (error: any) {
     console.error('AI 엔진 호출 실패:', error)
+    
+    // AI 엔진에서 반환된 오류 메시지 추출
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error)
+    }
+    
+    // axios 오류 처리
+    if (error.message) {
+      throw new Error(error.message)
+    }
+    
     throw new Error('AI 분석 중 오류가 발생했습니다.')
   }
 }
